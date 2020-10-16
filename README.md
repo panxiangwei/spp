@@ -1,13 +1,23 @@
 # spp
+
+[<img src="https://img.shields.io/github/license/esrrhs/spp">](https://github.com/esrrhs/spp)
+[<img src="https://img.shields.io/github/languages/top/esrrhs/spp">](https://github.com/esrrhs/spp)
+[![Go Report Card](https://goreportcard.com/badge/github.com/esrrhs/spp)](https://goreportcard.com/report/github.com/esrrhs/spp)
+[<img src="https://img.shields.io/github/v/release/esrrhs/spp">](https://github.com/esrrhs/spp/releases)
+[<img src="https://img.shields.io/github/downloads/esrrhs/spp/total">](https://github.com/esrrhs/spp/releases)
+[<img src="https://img.shields.io/docker/pulls/esrrhs/spp">](https://hub.docker.com/repository/docker/esrrhs/spp)
+[<img src="https://img.shields.io/github/workflow/status/esrrhs/spp/Go">](https://github.com/esrrhs/spp/actions)
+
 spp是一个简单强大的网络代理工具。
 
 ![image](show.png)
 
 # 功能
-* 支持的协议：tcp、udp、可靠udp(rudp)、可靠icmp(ricmp)、kcp
+* 支持的协议：tcp、udp、rudp(可靠udp)、ricmp(可靠icmp)、rhttp(可靠http)、kcp、quic
 * 支持的类型：正向代理、反向代理、socks5正向代理、socks5反向代理
 * 协议和类型可以自由组合
 * 外部代理协议和内部转发协议可以自由组合
+* 支持shadowsocks插件，[spp-shadowsocks-plugin](https://github.com/esrrhs/spp-shadowsocks-plugin)，[spp-shadowsocks-plugin-android](https://github.com/esrrhs/spp-shadowsocks-plugin-android)
 
 # 使用
 ### 服务器
@@ -45,10 +55,10 @@ spp是一个简单强大的网络代理工具。
 代理udp
 # ./spp -name "test" -type proxy_client -server www.server.com:8888 -fromaddr :8080 -toaddr :8080 -proxyproto udp
 
-代理可靠udp
+代理rudp
 # ./spp -name "test" -type proxy_client -server www.server.com:8888 -fromaddr :8081 -toaddr :8081 -proxyproto rudp
 
-代理可靠icmp
+代理ricmp
 # ./spp -name "test" -type proxy_client -server www.server.com:8888 -fromaddr :8082 -toaddr :8082 -proxyproto ricmp
 
 同时代理上述三种
@@ -57,14 +67,23 @@ spp是一个简单强大的网络代理工具。
 ```
 * client和server之间的内部通信，也可以修改为其他协议，外部协议与内部协议之间自动转换。例如
 ```
-代理tcp，内部用可靠udp协议转发
+代理tcp，内部用rudp协议转发
 # ./spp -name "test" -type proxy_client -server www.server.com:8888 -fromaddr :8080 -toaddr :8080 -proxyproto tcp -proto rudp
 
-代理tcp，内部用可靠icmp协议转发
+代理tcp，内部用ricmp协议转发
 # ./spp -name "test" -type proxy_client -server www.server.com -fromaddr :8080 -toaddr :8080 -proxyproto tcp -proto ricmp
 
 代理udp，内部用tcp协议转发
 # ./spp -name "test" -type proxy_client -server www.server.com:8888 -fromaddr :8080 -toaddr :8080 -proxyproto udp -proto tcp
+
+代理udp，内部用kcp协议转发
+# ./spp -name "test" -type proxy_client -server www.server.com:8888 -fromaddr :8080 -toaddr :8080 -proxyproto udp -proto kcp
+
+代理tcp，内部用quic协议转发
+# ./spp -name "test" -type proxy_client -server www.server.com:8888 -fromaddr :8080 -toaddr :8080 -proxyproto tcp -proto quic
+
+代理tcp，内部用rhttp协议转发
+# ./spp -name "test" -type proxy_client -server www.server.com:8888 -fromaddr :8080 -toaddr :8080 -proxyproto tcp -proto rhttp
 ```
 * 也可以使用docker
 ```
@@ -74,43 +93,29 @@ spp是一个简单强大的网络代理工具。
 # 性能测试
 * 使用benchmark/local_tcp目录的iperf脚本，在单机测试，在cpu跑满的情况下，测试最大带宽速度。代理协议是tcp，采用各种中转协议转发的结果如下：
 
-|     代理方式   | 速度  |
-|--------------|----------|
-| 直连 | 3535 MBytes/sec |
-| tcp转发 | 663 MBytes/sec |
-| tcp转发（加密） | 225 MBytes/sec |
-| tcp转发（加密压缩） | 23.4 MBytes/sec |
-| rudp转发 | 5.15 MBytes/sec |
-| rudp转发（加密） | 5.81 MBytes/sec |
-| rudp转发 | 5.05 MBytes/sec |
-| ricmp转发 | 3.34 MBytes/sec |
-| ricmp转发（加密） | 3.25 MBytes/sec |
-| ricmp转发 | 3.46 MBytes/sec |
-| kcp转发 | 18.2 MBytes/sec |
-| kcp转发（加密） | 18.6 MBytes/sec |
-| kcp转发（加密压缩） | 14.7 MBytes/sec |
-
+|     代理方式   | 速度  | 速度（加密）  | 速度（加密压缩）  |
+|--------------|----------|----------|----------|
+| 直连 | 3535 MBytes/sec | | |
+| tcp转发 | 663 MBytes/sec | 225 MBytes/sec | 23.4 MBytes/sec |
+| rudp转发 | 5.15 MBytes/sec | 5.81 MBytes/sec | 5.05 MBytes/sec|
+| ricmp转发 | 3.34 MBytes/sec | 3.25 MBytes/sec|3.46 MBytes/sec |
+| rhttp转发 | 10.7 MBytes/sec | 10.8 MBytes/sec| 8.73 MBytes/sec|
+| kcp转发 | 18.2 MBytes/sec | 18.6 MBytes/sec| 14.7 MBytes/sec|
+| quic转发 | 35.5 MBytes/sec | 32.8 MBytes/sec|15.1 MBytes/sec |
 
 * 使用benchmark/remote_tcp目录的iperf脚本，在多机测试，服务器位于腾讯云，客户端位于本地，测试最大带宽速度。代理协议是tcp，采用各种中转协议转发的结果如下：
 
-|     代理方式   | 速度  |
-|--------------|----------|
-| 直连 | 2.74 MBytes/sec |
-| tcp转发 | 3.81 MBytes/sec |
-| tcp转发（加密） | 3.90 MBytes/sec |
-| tcp转发（加密压缩） | 4.02 MBytes/sec |
-| rudp转发 | 3.33 MBytes/sec |
-| rudp转发（加密） | 3.41 MBytes/sec |
-| rudp转发 | 3.58 MBytes/sec |
-| ricmp转发 | 3.21 MBytes/sec |
-| ricmp转发（加密） | 2.95 MBytes/sec |
-| ricmp转发 | 3.17 MBytes/sec |
-| kcp转发 | 3.58 MBytes/sec |
-| kcp转发（加密） | 3.58 MBytes/sec |
-| kcp转发（加密压缩）| 3.75 MBytes/sec |
+|     代理方式   | 速度  |速度（加密）  | 速度（加密压缩）  |
+|--------------|----------|----------|----------|
+| 直连 | 2.74 MBytes/sec | | |
+| tcp转发 | 3.81 MBytes/sec |3.90 MBytes/sec | 4.02 MBytes/sec|
+| rudp转发 | 3.33 MBytes/sec | 3.41 MBytes/sec| 3.58 MBytes/sec|
+| ricmp转发 | 3.21 MBytes/sec | 2.95 MBytes/sec| 3.17 MBytes/sec|
+| rhttp转发 | 3.48 MBytes/sec |3.49 MBytes/sec |3.39 MBytes/sec |
+| kcp转发 | 3.58 MBytes/sec |3.58 MBytes/sec | 3.75 MBytes/sec |
+| quic转发 | 3.85 MBytes/sec | 3.83 MBytes/sec | 3.92 MBytes/sec |
+
 
 * 注：测试数据是centos.iso，已经被压缩过了，所以压缩转发的效果不明显
 * 如果想直接测试下网络的各协议带宽，使用多协议带宽测试工具[connperf](https://github.com/esrrhs/connperf)
-
-
 
